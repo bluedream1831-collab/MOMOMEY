@@ -1,1 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>配息試算 (修復版)</title>
+    <style>
+        /* 基礎樣式設定 */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0; 
+            padding: 15px; 
+            color: #333;
+            padding-bottom: 60px;
+        }
 
+        h2 { text-align: center; margin-bottom: 5px; font-size: 1.4rem; color: #2c3e50; }
+        p.subtitle { text-align: center; color: #666; margin-top: 0; font-size: 0.9rem; margin-bottom: 20px; }
+
+        /* 輸入區塊卡片 */
+        .input-card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.95rem; }
+        
+        input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            background-color: #fff;
+            -webkit-appearance: none; /* 修正 iOS 外觀 */
+        }
+        
+        /* 按鈕樣式 */
+        .btn-calc {
+            width: 100%;
+            padding: 15px;
+            background-color: #007bff;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(0,123,255,0.2);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-calc:active { background-color: #0056b3; transform: scale(0.98); }
+
+        /* 結果卡片樣式 */
+        .result-card {
+            background: #ffffff;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+
+        .card-header {
+            background: #eef2f5;
+            padding: 12px 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .ratio-badge {
+            background: #333;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .card-body { padding: 15px 20px; }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .detail-val { font-weight: bold; color: #333; }
+
+        .divider { border-top: 1px dashed #ddd; margin: 15px 0; }
+
+        /* 比較區塊 */
+        .compare-box {
+            background-color: #fafafa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 5px solid #ccc;
+        }
+        
+        .compare-a { border-left-color: #d63384; background-color: #fff0f6; }
+        .compare-b { border-left-color: #198754; background-color: #f0fff4; }
+
+        .comp-title { font-size: 0.85rem; color: #555; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        .comp-money { font-size: 1.3rem; font-weight: 800; font-family: monospace; }
+        .money-a { color: #d63384; }
+        .money-b { color: #198754; }
+
+        .fund-hint { font-size: 0.8rem; margin-top: 5px; }
+        .hint-a { color: #d63384; }
+        .hint-b { color: #198754; }
+        
+        .footer-note { font-size: 0.75rem; color: #999; text-align: center; margin-top: 30px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <h2>配息配置試算</h2>
+    <p class="subtitle">輸入金額與選擇配息率，即時試算月收</p>
+
+    <!-- 輸入區 -->
+    <div class="input-card">
+        <div class="form-group">
+            <label>投入總資金 (TWD)</label>
+            <input type="number" id="totalAmount" inputmode="numeric" placeholder="例如: 1000000" value="1000000">
+        </div>
+        
+        <div class="form-group">
+            <label>方案 A 配息率 (積極)</label>
+            <select id="rateA" onchange="updateLabels()">
+                <option value="10">10%</option>
+                <option value="9" selected>9%</option>
+                <option value="7">7%</option>
+                <option value="6">6%</option>
+            </select>
+            <div id="labelA" class="fund-hint hint-a">安聯收益成長 / 施羅德環球</div>
+        </div>
+
+        <div class="form-group">
+            <label>方案 B 配息率 (穩健)</label>
+            <select id="rateB" onchange="updateLabels()">
+                <option value="10">10%</option>
+                <option value="9">9%</option>
+                <option value="7">7%</option>
+                <option value="6" selected>6%</option>
+            </select>
+            <div id="labelB" class="fund-hint hint-b">貝萊德全球智慧數據</div>
+        </div>
+
+        <button id="calcBtn" class="btn-calc" onclick="runCalculation()">開始計算</button>
+    </div>
+
+    <!-- 結果區 -->
+    <div id="resultContainer" style="display:none;"></div>
+
+    <div class="footer-note">
+        ※ 試算結果未包含手續費。<br>
+        ※ 基金配息來源可能為本金。<br>
+        ※ 9% 參考：安聯收益成長/施羅德環球。<br>
+        ※ 6% 參考：貝萊德全球智慧數據。
+    </div>
+
+<script>
+    // 使用 var 確保舊版瀏覽器相容性
+    var fundMap = {
+        "10": "積極型收益 / 高收債",
+        "9": "安聯收益成長 / 施羅德環球",
+        "7": "多元收益 / 平衡型",
+        "6": "貝萊德全球智慧數據"
+    };
+
+    // 格式化金錢函數
+    function formatMoney(n) {
+        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // 更新下方提示文字
+    function updateLabels() {
+        var rA = document.getElementById('rateA').value;
+        var rB = document.getElementById('rateB').value;
+        
+        var txtA = fundMap[rA] ? fundMap[rA] : "";
+        var txtB = fundMap[rB] ? fundMap[rB] : "";
+
+        document.getElementById('labelA').innerText = txtA;
+        document.getElementById('labelB').innerText = txtB;
+    }
+
+    // 主要計算函數
+    function runCalculation() {
+        // 錯誤捕捉機制
+        try {
+            var btn = document.getElementById('calcBtn');
+            var originalText = btn.innerText;
+            btn.innerText = "計算中...";
+
+            var totalInput = document.getElementById('totalAmount').value;
+            var total = parseFloat(totalInput);
+            var rateA = parseFloat(document.getElementById('rateA').value);
+            var rateB = parseFloat(document.getElementById('rateB').value);
+
+            if (isNaN(total) || total <= 0) {
+                alert("請輸入有效的金額！");
+                btn.innerText = originalText;
+                return;
+            }
+
+            // 強制隱藏鍵盤
+            document.getElementById('totalAmount').blur();
+
+            var scenarios = [
+                { accum: 1, income: 9 },
+                { accum: 2, income: 8 },
+                { accum: 3, income: 7 }
+            ];
+
+            var html = "";
+
+            // 使用傳統 for 迴圈避免箭頭函式問題
+            for (var i = 0; i < scenarios.length; i++) {
+                var s = scenarios[i];
+                var accumMoney = total * (s.accum / 10.0);
+                var incomeMoney = total * (s.income / 10.0);
+                
+                var monthlyA = (incomeMoney * (rateA / 100.0)) / 12.0;
+                var monthlyB = (incomeMoney * (rateB / 100.0)) / 12.0;
+
+                html += '<div class="result-card">';
+                html += '  <div class="card-header">';
+                html += '    <span>配置策略</span>';
+                html += '    <span class="ratio-badge">' + s.accum + ' : ' + s.income + '</span>';
+                html += '  </div>';
+                html += '  <div class="card-body">';
+                html += '    <div class="detail-row"><span>累積型 (保留):</span><span class="detail-val">$' + formatMoney(accumMoney) + '</span></div>';
+                html += '    <div class="detail-row"><span>配息型 (投入):</span><span class="detail-val">$' + formatMoney(incomeMoney) + '</span></div>';
+                html += '    <div class="divider"></div>';
+                
+                // 方案 A
+                html += '    <div class="compare-box compare-a">';
+                html += '      <div class="comp-title">方案 A (' + rateA + '%) <span style="font-weight:normal;opacity:0.7">月領</span></div>';
+                html += '      <div class="comp-money money-a">$' + formatMoney(monthlyA) + '</div>';
+                html += '    </div>';
+                
+                // 方案 B
+                html += '    <div class="compare-box compare-b">';
+                html += '      <div class="comp-title">方案 B (' + rateB + '%) <span style="font-weight:normal;opacity:0.7">月領</span></div>';
+                html += '      <div class="comp-money money-b">$' + formatMoney(monthlyB) + '</div>';
+                html += '    </div>';
+                
+                html += '  </div>'; // end card-body
+                html += '</div>'; // end result-card
+            }
+
+            var container = document.getElementById('resultContainer');
+            container.innerHTML = html;
+            container.style.display = 'block';
+
+            // 滾動畫面
+            setTimeout(function() {
+                container.scrollIntoView({ behavior: 'smooth' });
+                btn.innerText = originalText;
+            }, 100);
+
+        } catch (error) {
+            alert("發生錯誤：" + error.message);
+            document.getElementById('calcBtn').innerText = "開始計算";
+        }
+    }
+
+    // 初始化標籤
+    window.onload = function() {
+        updateLabels();
+    };
+</script>
+
+</body>
+</html>
